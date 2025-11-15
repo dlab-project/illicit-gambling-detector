@@ -1,5 +1,4 @@
 import json
-import os
 from typing import Dict, Any, Optional
 import google.generativeai as genai
 
@@ -12,15 +11,16 @@ class GeminiClassifier:
         GeminiClassifier 초기화
 
         Args:
-            api_key: Google Generative AI API 키. None이면 환경변수에서 로드
+            api_key: Google Generative AI API 키
         """
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.api_key = api_key
         if not self.api_key:
             raise ValueError(
-                "Gemini API key not found. Set GEMINI_API_KEY environment variable or pass api_key parameter."
+                "Gemini API key not found. Please provide api_key parameter in settings.json."
             )
 
-        genai.configure(api_key="AIzaSyB9reyXlfCy8EluA7T2vLfDoO2SCsMcJk4")
+        # settings.json에서 전달받은 API 키로 설정
+        genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel("gemini-2.5-flash")
 
     def classify_url(self, url: str, html_content: str) -> Dict[str, Any]:

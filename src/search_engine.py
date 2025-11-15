@@ -89,8 +89,8 @@ class SearchEngine:
             for link_element in link_elements:
                 href = link_element.get_attribute("href")
                 if href and (href.startswith("http://") or href.startswith("https://")):
-                    # 구글 내부 링크 제외
-                    if "google.com" not in href:
+                    # 구글 내부 링크 및 data: URL 제외
+                    if "google.com" not in href and not href.startswith("data:"):
                         valid_links.append(link_element)
             
             # 최대 링크 수만큼만 방문
@@ -117,38 +117,43 @@ class SearchEngine:
                     results.append((current_url, html_content))
                     print(f"    ✓ Collected HTML from: {current_url}")
                     
-                    # 뒤로가기
-                    self.driver.back()
-                    
-                    # 검색 결과 페이지 로딩 대기
-                    time.sleep(random.uniform(1, 2))
-                    WebDriverWait(self.driver, 10).until(
-                        EC.presence_of_element_located((By.ID, "rso"))
-                    )
-                    
-                    # rso 영역 다시 찾기 (페이지가 새로 로드되었으므로)
-                    rso_element = self.driver.find_element(By.ID, "rso")
-                    link_elements = rso_element.find_elements(By.TAG_NAME, "a")
-                    
-                    # 다음 링크를 위해 valid_links 재구성
-                    valid_links = []
-                    for link_element in link_elements:
-                        href = link_element.get_attribute("href")
-                        if href and (href.startswith("http://") or href.startswith("https://")):
-                            if "google.com" not in href:
-                                valid_links.append(link_element)
-                    
-                    # 다음에 방문할 링크 업데이트 (이미 방문한 것 제외)
-                    links_to_visit = valid_links[:max_links]
+                    # 마지막 링크가 아니면 뒤로가기 (자연스러운 종료를 위해)
+                    is_last_link = (i == len(links_to_visit))
+                    if not is_last_link:
+                        # 뒤로가기
+                        self.driver.back()
+                        
+                        # 검색 결과 페이지 로딩 대기
+                        time.sleep(random.uniform(1, 2))
+                        WebDriverWait(self.driver, 10).until(
+                            EC.presence_of_element_located((By.ID, "rso"))
+                        )
+                        
+                        # rso 영역 다시 찾기 (페이지가 새로 로드되었으므로)
+                        rso_element = self.driver.find_element(By.ID, "rso")
+                        link_elements = rso_element.find_elements(By.TAG_NAME, "a")
+                        
+                        # 다음 링크를 위해 valid_links 재구성
+                        valid_links = []
+                        for link_element in link_elements:
+                            href = link_element.get_attribute("href")
+                            if href and (href.startswith("http://") or href.startswith("https://")):
+                                if "google.com" not in href and not href.startswith("data:"):
+                                    valid_links.append(link_element)
+                        
+                        # 다음에 방문할 링크 업데이트 (이미 방문한 것 제외)
+                        links_to_visit = valid_links[:max_links]
                     
                 except Exception as e:
                     print(f"    ✗ Error visiting link: {e}")
-                    # 에러 발생 시 검색 결과 페이지로 돌아가기 시도
-                    try:
-                        self.driver.back()
-                        time.sleep(1)
-                    except:
-                        pass
+                    # 에러 발생 시 검색 결과 페이지로 돌아가기 시도 (마지막 링크가 아닐 때만)
+                    is_last_link = (i == len(links_to_visit))
+                    if not is_last_link:
+                        try:
+                            self.driver.back()
+                            time.sleep(1)
+                        except:
+                            pass
                     continue
         
         except Exception as e:
