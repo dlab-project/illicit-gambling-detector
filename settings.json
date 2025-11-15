@@ -1,7 +1,7 @@
 {
   "search_engine": "google",
-  "headless_mode": true,
-  "delay_between_searches": 2,
+  "headless_mode": false,
+  "delay_between_searches": 5,
   "output_file": "results.json",
   "remove_tracking_params": true
 }
