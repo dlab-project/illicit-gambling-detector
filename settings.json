@@ -3,5 +3,7 @@
   "headless_mode": false,
   "delay_between_searches": 5,
   "output_file": "results.json",
-  "remove_tracking_params": true
+  "remove_tracking_params": true,
+  "use_gemini_classifier": true,
+  "gemini_api_key": "AIzaSyB9reyXlfCy8EluA7T2vLfDoO2SCsMcJk4"
 }

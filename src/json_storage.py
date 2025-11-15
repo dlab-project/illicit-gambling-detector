@@ -8,16 +8,27 @@ class JSONStorage:
     def __init__(self, output_file: str = "results.json"):
         self.output_file = output_file
 
-    def save_results(self, urls: List[str], keyword: str) -> None:
+    def save_results(self, urls: List[str], keyword: str, classification_results: List[Dict[str, Any]] = None) -> None:
         timestamp = datetime.now().isoformat()
 
         new_entries = []
-        for url in urls:
+        for i, url in enumerate(urls):
             entry = {
                 "url": url,
                 "keyword_used": keyword,
                 "collected_at": timestamp
             }
+
+            # 분류 결과가 있으면 추가
+            if classification_results and i < len(classification_results):
+                result = classification_results[i]
+                entry["is_illegal"] = result.get("is_illegal", False)
+                entry["gemini_confidence"] = result.get("confidence", 0.0)
+                entry["gemini_reason"] = result.get("reason", "")
+                entry["gemini_error"] = result.get("error", None)
+                if result.get("detected_keywords"):
+                    entry["detected_keywords"] = result.get("detected_keywords")
+
             new_entries.append(entry)
 
         existing_data = self.load_existing_data()
