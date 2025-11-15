@@ -50,6 +50,44 @@ class GamblingDomainCrawler:
             print(f"Failed to fetch URL {url}: {e}")
             return ""
 
+    def _classify_visited_results(self, visited_results: list) -> tuple:
+        """
+        방문한 결과(URL과 HTML 쌍)를 분류하고 불법 도박 사이트만 필터링합니다
+        
+        Args:
+            visited_results: [(url, html_content), ...] 형태의 리스트
+        
+        Returns:
+            (filtered_urls, classification_results) 튜플
+        """
+        if not self.use_classifier or not self.classifier:
+            # 분류기가 없으면 모든 URL 반환
+            return [url for url, _ in visited_results], None
+
+        filtered_urls = []
+        classification_results = []
+
+        for url, html_content in visited_results:
+            if not html_content:
+                print(f"  Skipping {url} - no HTML content")
+                continue
+
+            # Gemini로 불법 사이트 판별
+            print(f"  Classifying: {url}")
+            result = self.classifier.classify_url(url, html_content)
+            classification_results.append(result)
+
+            # 오류가 없고 불법 사이트면 필터링된 목록에 추가
+            if result.get("error") is None and result.get("is_illegal"):
+                print(f"  ✓ Illegal site detected: {url} (confidence: {result.get('confidence', 0):.2f})")
+                filtered_urls.append(url)
+            elif result.get("error"):
+                print(f"  ⚠ Classification error for {url}: {result.get('error')}")
+            else:
+                print(f"  ✗ Not an illegal gambling site: {url}")
+
+        return filtered_urls, classification_results
+
     def _classify_and_filter_urls(self, urls: list) -> tuple:
         """
         URL 목록을 분류하고 불법 도박 사이트만 필터링합니다
@@ -97,6 +135,7 @@ class GamblingDomainCrawler:
         print(f"Generated {len(keywords)} keywords to search")
 
         delay = self.settings.get("delay_between_searches", 2)
+        max_links_per_search = self.settings.get("max_links_per_search", 10)
         existing_urls = self.storage.get_existing_urls()
 
         # 모든 키워드에 대해 검색 수행
@@ -104,28 +143,38 @@ class GamblingDomainCrawler:
             print(f"[{i}/{len(keywords)}] Searching for: {keyword}")
 
             # Google 검색 수행
-            html_content = self.search_engine.search_google(keyword)
+            self.search_engine.search_google(keyword)
 
-            # URL 추출
-            urls = self.url_extractor.extract_urls_from_html(html_content)
-            new_urls = [url for url in urls if url not in existing_urls]
-
-            # 새로운 URL이 있으면 분류 및 저장
-            if new_urls:
-                print(f"Found {len(new_urls)} new URLs")
+            # 검색 결과 링크를 직접 방문하며 HTML 수집
+            visited_results = self.search_engine.visit_search_result_links(max_links=max_links_per_search)
+            
+            # 새로운 URL 필터링 및 분류
+            if visited_results:
+                print(f"Visited {len(visited_results)} links")
                 
-                # Gemini 분류기를 사용하여 불법 사이트만 필터링
-                filtered_urls, classification_results = self._classify_and_filter_urls(new_urls)
+                # 이미 존재하는 URL 제외
+                new_visited_results = [
+                    (url, html) for url, html in visited_results 
+                    if url not in existing_urls
+                ]
                 
-                if filtered_urls:
-                    # 불법 사이트로 판별된 URL만 저장
-                    self.storage.save_results(filtered_urls, keyword, classification_results)
-                    existing_urls.update(filtered_urls)
-                    print(f"Saved {len(filtered_urls)} illegal gambling URLs for keyword: {keyword}")
+                if new_visited_results:
+                    print(f"Found {len(new_visited_results)} new URLs")
+                    
+                    # Gemini 분류기를 사용하여 불법 사이트만 필터링
+                    filtered_urls, classification_results = self._classify_visited_results(new_visited_results)
+                    
+                    if filtered_urls:
+                        # 불법 사이트로 판별된 URL만 저장
+                        self.storage.save_results(filtered_urls, keyword, classification_results)
+                        existing_urls.update(filtered_urls)
+                        print(f"Saved {len(filtered_urls)} illegal gambling URLs for keyword: {keyword}")
+                    else:
+                        print(f"No illegal gambling sites found for keyword: {keyword}")
                 else:
-                    print(f"No illegal gambling sites found for keyword: {keyword}")
+                    print(f"No new URLs found for keyword: {keyword}")
             else:
-                print(f"No new URLs found for keyword: {keyword}")
+                print(f"No links visited for keyword: {keyword}")
 
             # 다음 검색 전 대기
             if i < len(keywords):
