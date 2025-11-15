@@ -21,7 +21,7 @@ class GeminiClassifier:
             )
 
         genai.configure(api_key="AIzaSyB9reyXlfCy8EluA7T2vLfDoO2SCsMcJk4")
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
 
     def classify_url(self, url: str, html_content: str) -> Dict[str, Any]:
         """
