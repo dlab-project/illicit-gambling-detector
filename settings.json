@@ -5,6 +5,5 @@
   "max_links_per_search": 10,
   "output_file": "results.json",
   "remove_tracking_params": true,
-  "use_gemini_classifier": true,
-  "gemini_api_key": "AIzaSyB9reyXlfCy8EluA7T2vLfDoO2SCsMcJk4"
+  "use_gemini_classifier": true
 }

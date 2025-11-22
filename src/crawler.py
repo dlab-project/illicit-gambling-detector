@@ -1,8 +1,10 @@
 import time
 import json
 import requests
+import os
 from typing import Dict, Any
 from urllib.parse import urlparse
+from dotenv import load_dotenv
 
 from .keyword_manager import KeywordManager
 from .search_engine import SearchEngine
@@ -13,6 +15,9 @@ from .gemini_classifier import GeminiClassifier
 
 class GamblingDomainCrawler:
     def __init__(self, settings_file: str = "settings.json"):
+        # .env 파일에서 환경 변수 로드
+        load_dotenv()
+        
         self.settings = self._load_settings(settings_file)
         self.keyword_manager = KeywordManager()
         self.search_engine = SearchEngine(headless=self.settings.get("headless_mode", True))
@@ -21,11 +26,10 @@ class GamblingDomainCrawler:
         )
         self.storage = JSONStorage(self.settings.get("output_file", "results.json"))
         
-        # Gemini 분류기 초기화
+        # Gemini 분류기 초기화 (.env 파일에서 API 키 자동 로드)
         try:
-            self.classifier = GeminiClassifier(
-                api_key=self.settings.get("gemini_api_key")
-            )
+            # GeminiClassifier는 자동으로 .env에서 GEMINI_API_KEY를 로드함
+            self.classifier = GeminiClassifier()
             self.use_classifier = self.settings.get("use_gemini_classifier", True)
         except ValueError as e:
             print(f"Warning: Gemini classifier not initialized - {e}")
