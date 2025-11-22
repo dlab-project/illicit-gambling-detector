@@ -48,6 +48,15 @@ class SearchEngine:
         # 드라이버가 없으면 초기화
         if not self.driver:
             self.setup_driver()
+        
+        # 드라이버 세션 유효성 검사 (세션이 끊어진 경우 재초기화)
+        try:
+            # 현재 URL 확인 시도 (세션이 유효한지 테스트)
+            _ = self.driver.current_url
+        except Exception as e:
+            print(f"  ⚠ Browser session lost, reinitializing driver... ({e})")
+            self.driver = None
+            self.setup_driver()
 
         # Google 검색 실행
         search_url = f"https://www.google.com/search?q={keyword}"
@@ -117,18 +126,19 @@ class SearchEngine:
                     results.append((current_url, html_content))
                     print(f"    ✓ Collected HTML from: {current_url}")
                     
-                    # 마지막 링크가 아니면 뒤로가기 (자연스러운 종료를 위해)
+                    # 뒤로가기 (다음 검색을 위해 항상 검색 결과 페이지로 돌아감)
                     is_last_link = (i == len(links_to_visit))
+                    # 뒤로가기
+                    self.driver.back()
+                    
+                    # 검색 결과 페이지 로딩 대기
+                    time.sleep(random.uniform(1, 2))
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.ID, "rso"))
+                    )
+                    
+                    # 마지막 링크가 아니면 다음 링크 준비
                     if not is_last_link:
-                        # 뒤로가기
-                        self.driver.back()
-                        
-                        # 검색 결과 페이지 로딩 대기
-                        time.sleep(random.uniform(1, 2))
-                        WebDriverWait(self.driver, 10).until(
-                            EC.presence_of_element_located((By.ID, "rso"))
-                        )
-                        
                         # rso 영역 다시 찾기 (페이지가 새로 로드되었으므로)
                         rso_element = self.driver.find_element(By.ID, "rso")
                         link_elements = rso_element.find_elements(By.TAG_NAME, "a")
@@ -146,14 +156,17 @@ class SearchEngine:
                     
                 except Exception as e:
                     print(f"    ✗ Error visiting link: {e}")
-                    # 에러 발생 시 검색 결과 페이지로 돌아가기 시도 (마지막 링크가 아닐 때만)
-                    is_last_link = (i == len(links_to_visit))
-                    if not is_last_link:
-                        try:
-                            self.driver.back()
-                            time.sleep(1)
-                        except:
-                            pass
+                    # 에러 발생 시 검색 결과 페이지로 돌아가기 시도
+                    try:
+                        self.driver.back()
+                        time.sleep(1)
+                        # 검색 결과 페이지 확인
+                        WebDriverWait(self.driver, 5).until(
+                            EC.presence_of_element_located((By.ID, "rso"))
+                        )
+                    except:
+                        print(f"    ⚠ Failed to return to search results")
+                        pass
                     continue
         
         except Exception as e:
