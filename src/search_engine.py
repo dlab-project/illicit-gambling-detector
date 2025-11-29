@@ -64,7 +64,7 @@ class SearchEngine:
             # 현재 URL 확인 시도 (세션이 유효한지 테스트)
             _ = self.driver.current_url
         except Exception as e:
-            print(f"  ⚠ Browser session lost, reinitializing driver... ({e})")
+            print(f"  ⚠️ 브라우저 세션 끊김, 드라이버 재초기화 중... ({e})")
             self.driver = None
             self.setup_driver()
 
@@ -115,18 +115,18 @@ class SearchEngine:
                         if not is_news_site:
                             valid_links.append(link_element)
                         else:
-                            print(f"    Skipping news site: {href}")
+                            print(f"    ⏭️ 뉴스 사이트 건너뛰기: {href}")
             
             # 최대 링크 수만큼만 방문
             links_to_visit = valid_links[:max_links]
-            print(f"  Found {len(valid_links)} valid links, visiting {len(links_to_visit)} links")
+            print(f"  📋 {len(valid_links)}개의 유효 링크 발견, {len(links_to_visit)}개 방문 예정")
             
             # 각 링크 방문
             for i, link_element in enumerate(links_to_visit, 1):
                 try:
                     # 링크 URL 저장 (클릭 후에는 접근 불가능)
                     target_url = link_element.get_attribute("href")
-                    print(f"    [{i}/{len(links_to_visit)}] Clicking: {target_url}")
+                    print(f"    [{i}/{len(links_to_visit)}] 🔗 클릭: {target_url}")
                     
                     # 링크 클릭
                     link_element.click()
@@ -139,7 +139,7 @@ class SearchEngine:
                     html_content = self.driver.page_source
                     
                     results.append((current_url, html_content))
-                    print(f"    ✓ Collected HTML from: {current_url}")
+                    print(f"    ✅ HTML 수집 완료: {current_url}")
                     
                     # 뒤로가기 (다음 검색을 위해 항상 검색 결과 페이지로 돌아감)
                     is_last_link = (i == len(links_to_visit))
@@ -173,7 +173,7 @@ class SearchEngine:
                         links_to_visit = valid_links[:max_links]
                     
                 except Exception as e:
-                    print(f"    ✗ Error visiting link: {e}")
+                    print(f"    ❌ 링크 방문 오류: {e}")
                     # 에러 발생 시 검색 결과 페이지로 돌아가기 시도
                     try:
                         self.driver.back()
@@ -183,12 +183,12 @@ class SearchEngine:
                             EC.presence_of_element_located((By.ID, "rso"))
                         )
                     except:
-                        print(f"    ⚠ Failed to return to search results")
+                        print(f"    ⚠️ 검색 결과 페이지로 복귀 실패")
                         pass
                     continue
         
         except Exception as e:
-            print(f"  Error finding search result links: {e}")
+            print(f"  ❌ 검색 결과 링크 찾기 오류: {e}")
         
         return results
 

@@ -37,7 +37,7 @@ class JSONStorage:
         with open(self.output_file, 'w', encoding='utf-8') as f:
             json.dump(existing_data, f, indent=2, ensure_ascii=False)
 
-        print(f"Saved {len(new_entries)} URLs for keyword '{keyword}'")
+        print(f"  💾 {len(new_entries)}개 URL 저장 완료 (키워드: '{keyword}')")
 
     def load_existing_data(self) -> List[Dict[str, Any]]:
         if not os.path.exists(self.output_file):

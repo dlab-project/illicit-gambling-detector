@@ -219,13 +219,28 @@ class DatabaseManager:
         }
 
 
-def import_from_json(json_file_path: str):
-    """results.json 파일의 데이터를 데이터베이스에 임포트"""
+def import_from_json(json_file_path: str, delete_after_import: bool = True):
+    """
+    results.json 파일의 데이터를 데이터베이스에 임포트
+    
+    Args:
+        json_file_path: JSON 파일 경로
+        delete_after_import: 임포트 성공 후 JSON 파일 삭제 여부 (기본값: True)
+    """
     import json
+    
+    # JSON 파일 존재 확인
+    if not os.path.exists(json_file_path):
+        print(f"⚠️ 파일이 존재하지 않습니다: {json_file_path}")
+        return
     
     # JSON 파일 읽기
     with open(json_file_path, 'r', encoding='utf-8') as f:
         url_data_list = json.load(f)
+    
+    if not url_data_list:
+        print(f"⚠️ 파일이 비어있습니다: {json_file_path}")
+        return
     
     print(f"📄 {len(url_data_list)}개의 URL 데이터를 읽었습니다.")
     
@@ -249,6 +264,12 @@ def import_from_json(json_file_path: str):
     print(f"  - 불법 사이트 평균 신뢰도: {stats['avg_illegal_confidence']:.2f}")
     
     db.disconnect()
+    
+    # 임포트 성공 후 JSON 파일 삭제
+    if delete_after_import and inserted_count > 0:
+        os.remove(json_file_path)
+        print(f"\n🗑️ JSON 파일 삭제 완료: {json_file_path}")
+        print("   (다음 크롤링 시 새로운 results.json이 생성됩니다)")
 
 
 if __name__ == "__main__":
