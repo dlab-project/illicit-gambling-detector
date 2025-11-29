@@ -13,6 +13,7 @@ This is an **illegal gambling domain detection crawler MVP** that searches keywo
 - Chrome/Chromium browser (for Selenium-based searching)
 - Google Generative AI API key (for Gemini classification)
 - PostgreSQL database (Supabase recommended)
+- **Note**: On Windows, ensure Chrome/Chromium is installed in default paths or PATH
 
 ### Environment Setup
 ```bash
@@ -66,6 +67,25 @@ python test_gemini.py
 python test_database.py
 ```
 
+## Common Development Commands
+
+```bash
+# Verify dependencies are installed correctly
+python -c "import selenium; import bs4; import google.generativeai; print('All dependencies OK')"
+
+# Run the crawler with default settings
+python main.py
+
+# Check current crawl results and statistics
+python -c "from src.json_storage import JSONStorage; s = JSONStorage(); print(s.get_stats())"
+
+# List all keyword combinations that will be searched
+python -c "from src.keyword_manager import KeywordManager; km = KeywordManager(); print(km.generate_combinations())"
+
+# Export data from results.json to database
+python -c "from src.database import DatabaseManager; db = DatabaseManager(); db.connect(); db.import_from_json('results.json')"
+```
+
 ### Configuration
 The crawler is controlled via `settings.json`:
 - `search_engine`: Which search engine to use (e.g., "google")
@@ -77,6 +97,47 @@ The crawler is controlled via `settings.json`:
 - `use_gemini_classifier`: Enable Gemini-based URL classification (true/false)
 
 **Note:** API keys and database credentials are now managed via `.env` file (not `settings.json`).
+
+## Key Development Notes
+
+### Dependencies & Missing Packages
+The `pyproject.toml` file is missing `google-generativeai` which is required for Gemini classification. This should be installed when running `pip install -e .`, but if you see import errors, install it directly:
+```bash
+pip install google-generativeai
+```
+
+### File Structure Overview
+```
+illicit-gambling-detector/
+├── main.py                    # Entry point
+├── settings.json              # Crawler configuration
+├── keywords.json              # Search keywords
+├── .env                       # API keys and DB credentials (not in git)
+├── env_template.txt           # Template for .env
+├── src/
+│   ├── crawler.py             # Main orchestrator
+│   ├── keyword_manager.py     # Keyword loading and combinations
+│   ├── search_engine.py       # Web search (Selenium + requests fallback)
+│   ├── url_extractor.py       # URL parsing and cleaning
+│   ├── gemini_classifier.py   # AI-based classification
+│   ├── json_storage.py        # JSON file persistence
+│   └── database.py            # PostgreSQL integration
+├── test_gemini.py             # Gemini API test
+├── test_database.py           # Database integration test (if exists)
+└── results.json               # Output file with crawled results
+```
+
+### Module Dependencies
+- `crawler.py` depends on all other src modules
+- `search_engine.py` has fallback: Selenium → requests library
+- `gemini_classifier.py` requires `GEMINI_API_KEY` in `.env` (optional but recommended)
+- `database.py` requires PostgreSQL connection credentials in `.env`
+
+### Windows-Specific Notes
+- Use `python` instead of `python3` on Windows
+- Virtual environment activation: `.venv\Scripts\activate` (not `source .venv/bin/activate`)
+- Chrome/Chromium: webdriver-manager handles installation automatically, but ensure Chrome is in PATH or standard install locations
+- If Selenium fails, the system falls back to requests-based HTTP searches
 
 ## Architecture
 
@@ -131,3 +192,14 @@ The system supports persistent storage in PostgreSQL (Supabase):
 - URL extraction filters out invalid URLs, removes tracking parameters, and deduplicates results
 - All results are stored with timestamp and source keyword for traceability
 - The system handles interruptions gracefully and provides progress feedback
+
+## Current Repository Status
+
+**Files with uncommitted changes:**
+- `keywords.json` - Modified (keyword updates)
+- `src/search_engine.py` - Modified (session validation and error handling improvements)
+
+**Key considerations for future development:**
+- These changes represent recent enhancements to keyword lists and search engine stability
+- Review git log for context on recent commits before making additional changes
+- The project is actively maintained; check recent commits for patterns in code changes

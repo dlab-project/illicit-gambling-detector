@@ -13,6 +13,16 @@ class SearchEngine:
     def __init__(self, headless: bool = True):
         self.headless = headless
         self.driver = None
+        
+        # 뉴스 사이트 도메인 목록 (제외할 사이트)
+        self.news_domains = [
+            'news.', 'naver.com', 'daum.net', 'joins.com', 'chosun.com',
+            'donga.com', 'khan.co.kr', 'hankyung.com', 'mk.co.kr',
+            'yna.co.kr', 'newsis.com', 'ytn.co.kr', 'sbs.co.kr',
+            'kbs.co.kr', 'mbc.co.kr', 'jtbc.co.kr', 'mt.co.kr',
+            'sedaily.com', 'seoul.co.kr', 'hani.co.kr', 'kmib.co.kr',
+            'segye.com', 'fnnews.com', 'newsway.co.kr', 'journalist.or.kr'
+        ]
 
     def setup_driver(self):
         # Chrome 옵션 설정
@@ -100,7 +110,12 @@ class SearchEngine:
                 if href and (href.startswith("http://") or href.startswith("https://")):
                     # 구글 내부 링크 및 data: URL 제외
                     if "google.com" not in href and not href.startswith("data:"):
-                        valid_links.append(link_element)
+                        # 뉴스 사이트 제외
+                        is_news_site = any(news_domain in href for news_domain in self.news_domains)
+                        if not is_news_site:
+                            valid_links.append(link_element)
+                        else:
+                            print(f"    Skipping news site: {href}")
             
             # 최대 링크 수만큼만 방문
             links_to_visit = valid_links[:max_links]
@@ -149,7 +164,10 @@ class SearchEngine:
                             href = link_element.get_attribute("href")
                             if href and (href.startswith("http://") or href.startswith("https://")):
                                 if "google.com" not in href and not href.startswith("data:"):
-                                    valid_links.append(link_element)
+                                    # 뉴스 사이트 제외
+                                    is_news_site = any(news_domain in href for news_domain in self.news_domains)
+                                    if not is_news_site:
+                                        valid_links.append(link_element)
                         
                         # 다음에 방문할 링크 업데이트 (이미 방문한 것 제외)
                         links_to_visit = valid_links[:max_links]
